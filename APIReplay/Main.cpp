@@ -103,7 +103,7 @@ int invoke_int_function_with_params
     __asm
     {
         call p_function
-        add esp, 4
+        add esp, dword ptr[param_len]
         mov dword ptr[return_value], eax
     }
     return return_value;
