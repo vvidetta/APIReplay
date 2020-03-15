@@ -1,8 +1,10 @@
-// (c) Copyright  Vito Videtta  2018
+// (c) Copyright  Vito Videtta  2018 - 2019
 
 #include <iostream>
 #include <string>
 #include <Windows.h>
+#include "Library.h"
+#include <map>
 
 using namespace std;
 
@@ -110,7 +112,7 @@ int invoke_int_function_with_params
     return return_value;
 }
 
-void* invoke_struct_function
+/* void* invoke_struct_function
 (
     string const& library_name,
     string const& procedure_name,
@@ -145,7 +147,7 @@ void* invoke_struct_function
         pop ecx                       // restore ecx
     }
     return;
-}
+} */
 
 int main
 (
@@ -153,19 +155,65 @@ int main
     char* argv[]
 )
 {
-    string const library_name = "SampleLibrary.dll";
-    string const procedure_name = "SampleIntFunctionWithParam";
+    std::cout << "APIReplay Console for Windows" << std::endl
+        << "(c) Copyright  Vito Videtta  2018 - 2019" << std::endl
+        << std::endl;
 
-    int error = 0;
-    int param = 75;
-    int return_value = invoke_int_function_with_params(library_name, procedure_name, error, &param, sizeof(int));
-    if (error == 0)
+    auto libraries = std::map<std::filesystem::path, APIReplay::Library>{};
+    while (true)
     {
-        cout << "Returned value was " << return_value << endl;
+        std::cout << ">";
+        auto command = std::string{};
+        std::getline(std::cin, command);
+
+        if (command.empty())
+        {
+            continue;
+        }
+
+        if (command == "quit")
+        {
+            break;
+        }
+        if (command.substr(0, 4) == "open")
+        {
+            auto const libraryPath = std::filesystem::path{ command.substr(5) };
+            try
+            {
+                libraries[libraryPath] = APIReplay::Library{ libraryPath };
+            }
+            catch (std::exception & ex)
+            {
+                std::cout << "Failed to open library" << std::endl
+                    << ex.what() << std::endl;
+            }
+            catch (...)
+            {
+                std::cout << "Failed to open library" << std::endl;
+            }
+        }
+        else if (command.substr(0, 5) == "close")
+        {
+            auto const libraryPath = command.substr(6);
+            auto const it = libraries.find(libraryPath);
+            if (it == libraries.end())
+            {
+                std::cout << "Library not found" << std::endl;
+            }
+            else
+            {
+                libraries.erase(it);
+                std::cout << "Library closed" << std::endl;
+            }
+        }
+        else
+        {
+            std::cout << "Unrecognised command" << std::endl;
+        }
+
+        std::cout << std::endl;
     }
 
-    cout << "Press any key to continue..." << endl;
-    cin.ignore();
-    return error;
+    return 0;
 }
 
