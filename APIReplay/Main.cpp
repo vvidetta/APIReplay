@@ -89,26 +89,63 @@ int invoke_int_function_with_params
         return 0;
     }
 
-    void* stack_pointer = nullptr;
-    __asm
-    {
-        mov dword ptr [stack_pointer], esp
-        sub esp, dword ptr[param_len]
-    }
-
-    void* param_start = (char*)stack_pointer - param_len;
-    memcpy_s(param_start, param_len, p_param, param_len);
-
     int return_value = 0;
     __asm
     {
+        // push params onto stack
+        push ecx                      // save ecx
+        mov ecx, dword ptr[param_len] // Copy param_len bytes
+        mov esi, dword ptr[p_param]   // Copy from the param pointer
+        sub esp, ecx                  // Allocate stack memory for params
+        mov edi, esp                  // Copy to the allocated block
+        rep movsb                     // copy memory onto stack
+
+        // Call the function
         call p_function
-        add esp, dword ptr[param_len]
-        mov dword ptr[return_value], eax
+
+        add esp, dword ptr[param_len] // Free stack memory
+        mov dword ptr[return_value], eax // store return value
+        pop ecx                       // restore ecx
     }
     return return_value;
 }
 
+void* invoke_struct_function
+(
+    string const& library_name,
+    string const& procedure_name,
+    int&          error_status,
+    void* const   p_param,
+    size_t const  param_len,
+    size_t const  struct_size
+)
+{
+    FARPROC p_function = get_function_pointer(library_name, procedure_name, error_status);
+    if (p_function == nullptr)
+    {
+        return 0;
+    }
+
+    int return_value = 0;
+    __asm
+    {
+        // push params onto stack
+        push ecx                      // save ecx
+        mov ecx, dword ptr[param_len] // Copy param_len bytes
+        mov esi, dword ptr[p_param]   // Copy from the param pointer
+        sub esp, ecx                  // Allocate stack memory for params
+        mov edi, esp                  // Copy to the allocated block
+        rep movsb                     // copy memory onto stack
+
+        // Call the function
+        call p_function
+
+        add esp, dword ptr[param_len] // Free stack memory
+        mov dword ptr[return_value], eax // store return value
+        pop ecx                       // restore ecx
+    }
+    return;
+}
 
 int main
 (
